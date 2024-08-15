@@ -1,0 +1,51 @@
+services:
+  model-registry:
+    build:
+      context: .
+      dockerfile: Dockerfile.model_registry
+    image: model-registry:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+      - ./model_registry:/app/model_registry
+    environment:
+      - NAME=ModelRegistry
+
+  inference-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.inference_service
+    image: inference-service:latest
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./models:/app/models
+      - ./src:/app/src
+      - ./data/raw:/app/data/raw
+    environment:
+      - NAME=InferenceService
+      - MODEL_REGISTRY_URL=http://model-registry:8000
+      - PREPROCESSING_SERVICE_URL=http://preprocessing-service:8001
+    depends_on:
+      - model-registry
+      - preprocessing-service
+
+  preprocessing-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.preprocessing_service
+    image: preprocessing-service:latest
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./src:/app/src
+      - ./data/raw:/app/data/raw
+    environment:
+      - NAME=PreprocessingService
+    depends_on:
+      - model-registry
+
+volumes:
+  models:
+  data:
